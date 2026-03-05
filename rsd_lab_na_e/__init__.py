@@ -11,7 +11,7 @@ This app matches prizes to participants using the Random Serial Dictatorship (RS
 class C(BaseConstants):
     NAME_IN_URL = 'rsd_lab_na_e'
     PLAYERS_PER_GROUP = 4
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 2
     # Heterogeneous valuations for the 8 prizes, 4 types for now
     # VALUATIONS_1 = [1, 3, 5, 7, 9, 11, 13, 15]
     # VALUATIONS_2 = [1, 3, 5, 7, 9, 11, 13, 15]

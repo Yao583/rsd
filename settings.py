@@ -30,7 +30,13 @@ SESSION_CONFIGS = [
         participation_fee=5.00,
     )
 ]
-
+ROOMS = [
+    dict(
+        name='rsd_demo',
+        display_name='RSD Demo Room',
+        participant_label_file='guest_list.txt',
+    ),
+]
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
 # in SESSION_CONFIGS, except those that explicitly override it.
 # the session config can be accessed from methods in your apps as self.session.config,
