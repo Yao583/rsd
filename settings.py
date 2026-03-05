@@ -12,21 +12,21 @@ SESSION_CONFIGS = [
         name = 'rsd_lab_t1',
         display_name = "Matching by RSD in the lab (treatment 1)",
         app_sequence = ['rsd_lab_a_e', 'rsd_lab_na_ne'],
-        num_demo_participants = 4,
+        num_demo_participants = 8,
         participation_fee = 5.00,
     ),
     dict(
         name='rsd_lab_t2',
         display_name = "Matching by RSD in the lab (treatment 2)",
         app_sequence=['rsd_lab_a_ne', 'rsd_lab_na_e'],
-        num_demo_participants=4,
+        num_demo_participants=8,
         participation_fee=5.00,
     ),
     dict(
         name='rsd_lab_live',
         display_name="Sequential RSD (live)",
         app_sequence=['rsd_lab_live_a', 'rsd_lab_live_na'],
-        num_demo_participants=4,
+        num_demo_participants=8,
         participation_fee=5.00,
     )
 ]
