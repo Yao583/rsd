@@ -1,0 +1,98 @@
+{# ============================================================================================= #}
+{# LOAD PACKAGES =============================================================================== #}
+{# ============================================================================================= #}
+{% extends "global/Page.html" %}
+{% load staticfiles otree %}
+{% load i18n %}
+
+
+{# ============================================================================================= #}
+{# LOAD STYLESHEET ============================================================================= #}
+{# ============================================================================================= #}
+{% block styles %}
+
+    <link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
+    <style>
+        .demographics-form {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 5px rgba(0, 102, 204, 0.3);
+        }
+    </style>
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE HEADING ================================================================================ #}
+{# ============================================================================================= #}
+{% block title %}
+
+    {% trans "Demographics" %}
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE CONTENT ================================================================================ #}
+{# ============================================================================================= #}
+{% block content %}
+
+<p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+        Thank you for completing the experiment! We would appreciate it if you could answer 
+        a few brief demographic questions. This information helps us understand participant 
+        characteristics and will be kept confidential.
+    {% endblocktrans %}
+</p>
+
+<div class="demographics-form">
+    <div class="form-group">
+        {% formfield form.age %}
+    </div>
+
+    <div class="form-group">
+        {% formfield form.gender %}
+    </div>
+
+    <div class="form-group">
+        {% formfield form.education %}
+    </div>
+
+    <div class="form-group">
+        {% formfield form.experience %}
+    </div>
+
+    <div style="margin-top: 30px;">
+        {% next_button %}
+    </div>
+</div>
+
+{% endblock %}

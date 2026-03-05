@@ -1,0 +1,234 @@
+{# ============================================================================================= #}
+{# LOAD PACKAGES =============================================================================== #}
+{# ============================================================================================= #}
+{% extends "global/Page.html" %}
+{% load staticfiles otree %}
+{% load i18n %}
+
+
+{# ============================================================================================= #}
+{# LOAD STYLESHEET ============================================================================= #}
+{# ============================================================================================= #}
+{% block styles %}
+
+    <link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE HEADING ================================================================================ #}
+{# ============================================================================================= #}
+{% block title %}
+
+    {% trans "Instructions" %}
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE CONTENT ================================================================================ #}
+{# ============================================================================================= #}
+{% block content %}
+
+{#<p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>#}
+
+<p class="heading">
+    {% trans "Part 2" %}
+</p>
+
+<div class="instr-section">
+<p class="justify">
+    {% blocktrans trimmed %}
+      In this study, you and seven other participants are going to play a game for {{nr_prizes}} prizes. 
+      Each prize is worth money, but might be worth a different amount of money for each participant.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You and the other participants will each rank prizes in any order you wish. Then, an <strong>allocation process</strong> 
+      will use these rankings to allocate the prizes- one for each participant.
+    {% endblocktrans %}
+</p>
+
+<p class="justify" style="margin-bottom:0;">
+    {% blocktrans trimmed %}
+      The allocation process attempts to give each participant a prize that they ranked higher rather than a prize that they 
+      ranked lower. However, this is not always possible, since the allocation process must take into account the rankings of all participants. 
+    {% endblocktrans %}
+</p>
+</div>
+
+<p class="heading">
+    {% trans "Step 1: Prizes and Priorities" %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In Step 1, you first see the <strong>prizes</strong> you can get in this round and how 
+      much money they are worth to <strong>you</strong>. 
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In this round <strong>prizes</strong> are:
+    {% endblocktrans %} 
+</p>
+<div>
+    <table class="dec-table">
+        <thead>
+        <tr>
+            <th>{% trans "Prize" %}</th>
+            {% for letter in letters %}
+            <td>{{ letter }}</td>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <th>
+                {% trans "Value to Any Participant" %}
+            </th>
+            {% for i in valuations %}
+            <td>{{ i|c }}</td>
+            {% endfor %}
+        </tr>
+        {% if C.SHOW_PRIORITIES %}
+        <tr>
+            <th>{% trans "Your Priorities in Each Prize" %}</th>
+            {% for i in priorities %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        {% if C.SHOW_CAPACITIES %}
+        <tr>
+            <th>{% trans "Capacities" %}</th>
+            {% for i in capacities %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In the table above, under each prize {{ letters_str }} 
+      you can see how much money it would add to <strong>your</strong> earnings. 
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Every participant values the prizes the same way.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You and the other participants <strong>cannot affect the monetary value of prizes</strong>. 
+    {% endblocktrans %}
+</p>
+
+<div class="instr-callout-info">
+    <strong>{% trans "About Prize Priorities" %}</strong>
+    <p class="justify" style="margin-bottom:0;">
+    {% blocktrans trimmed %}
+      Our computer will <strong>randomly order</strong> the eight participants in your group, including you, from 1st to 
+      {{ nr_prizes_ordinal }}. Everyone has an equally likely chance of being any number, and <strong>no 
+        one can affect their prize priority</strong>. 
+    {% endblocktrans %}
+    </p>
+</div>
+
+<p class="heading">
+    {% trans "Step 2: Submit Your Ranking" %}
+</p>
+
+<p class="justify">You will submit your ranking by placing the prizes in numbered "envelopes":</p>
+
+<ul class="instr-list-styled">
+    <li>In <strong>Envelope 1</strong>, you will place the prize you want to rank first.</li>
+    <li>In <strong>Envelope 2</strong>, you will place the prize you want to rank second, and so on.</li>
+</ul>
+
+<div class="instr-callout">
+    <strong>Rules for Envelopes:</strong>
+    <ul class="instr-list" style="margin-bottom:0;">
+        <li>All of the envelopes must have different prizes. You can only rank a prize once.</li>
+        <li>You can submit up to four envelopes (the same as the number of prizes).</li>
+        <li>If you choose to submit fewer than four envelopes, you must fill the lower-numbered envelopes first.</li>
+    </ul>
+</div>
+
+<hr class="instr-divider">
+
+<p class="heading">
+    {% trans "How the Interface Works" %}
+</p>
+
+<div class="instr-section">
+<p class="justify">The interface is the same for everyone. It does not know how many envelopes you submitted, nor does it know what is in each envelope.</p>
+
+<p class="justify">When it is your turn, the interface knows which prizes are available, but keeps no record of any envelopes previously considered. It will consider your envelopes before turning to the next participant in line.</p>
+
+<p class="justify">The interface is designed to only be able to consider one of your envelopes at a time. When it considers an envelope, the interface:</p>
+<ol type="i" class="instr-list">
+    <li>Does not remember previous envelopes from the same person.</li>
+    <li>Does not know how many envelopes are still to come or what is in them.</li>
+</ol>
+
+<p class="justify" style="margin-bottom:0;"><em>Since the interface can only consider one envelope at a time, we will refer to the envelope that the interface observes as the <strong>envelope under consideration</strong>.</em></p>
+</div>
+
+<hr class="instr-divider">
+
+<p class="heading">
+    {% trans "The Allocation Process" %}
+</p>
+
+<p class="justify">When it is your turn, the interface checks whether you submitted <strong>Envelope 1</strong>:</p>
+<ul class="instr-list">
+    <li>If you <strong>did not</strong> submit Envelope 1, you do not receive any prize and the interface turns to the next person.</li>
+    <li>If you <strong>did</strong> submit Envelope 1, then Envelope 1 becomes the <em>envelope under consideration</em>. The interface will open it:
+        <ul class="instr-list">
+            <li>If the prize is <strong>available</strong>, you will win this prize. The interface no longer can access any of your envelopes that it did not need to open.</li>
+            <li>If the prize is <strong>unavailable</strong>, the interface will destroy Envelope 1 and forget the prize you indicated.</li>
+        </ul>
+    </li>
+</ul>
+
+<p class="justify">If the prize in Envelope 1 was unavailable, the interface then checks if you submitted <strong>Envelope 2</strong>:</p>
+<ul class="instr-list">
+    <li>If you <strong>did not</strong> submit Envelope 2, you do not receive any prize and the interface turns to the next person.</li>
+    <li>If you <strong>did</strong> submit Envelope 2, then Envelope 2 becomes the <em>envelope under consideration</em>.
+        <ul class="instr-list">
+            <li>If the prize is <strong>available</strong>, you will win this prize. The interface no longer can access any of your envelopes that it did not need to open.</li>
+            <li>If the prize is <strong>unavailable</strong>, the interface will destroy Envelope 2 and forget the prize you indicated.</li>
+        </ul>
+    </li>
+</ul>
+
+<p class="justify">The interface then checks if you submitted <strong>Envelope 3</strong>, and so on.</p>
+
+<hr class="instr-divider">
+
+<p class="heading">
+    {% trans "End of Process" %}
+</p>
+
+<p class="justify">At the end of this process, the interface was successful in giving you one of the prizes from the envelope under consideration or unsuccessful. That is, the interface ran out of your envelopes and could not assign you a prize.</p>
+
+<p class="justify">In either case, the interface moves on to the next person. Once the interface went through all the people, the process stops.</p>
+
+<div class="instr-callout-info">
+    <strong>General</strong>
+    <p class="justify" style="margin-bottom:0;">At the end of the allocation process, each participant who is not allocated a prize is randomly allocated one of the prizes that have not been allocated yet.</p>
+</div>
+
+{% next_button %}
+{% endblock %}

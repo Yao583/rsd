@@ -1,0 +1,99 @@
+{# ============================================================================================= #}
+{# LOAD PACKAGES =============================================================================== #}
+{# ============================================================================================= #}
+{% extends "global/Page.html" %}
+{% load staticfiles otree %}
+{% load i18n %}
+
+
+{# ============================================================================================= #}
+{# LOAD STYLESHEET ============================================================================= #}
+{# ============================================================================================= #}
+{% block styles %}
+
+    <link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE HEADING ================================================================================ #}
+{# ============================================================================================= #}
+{% block title %}
+
+    {% trans "Results" %}
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE CONTENT ================================================================================ #}
+{# ============================================================================================= #}
+{% block content %}
+
+<p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>
+
+<div>
+    <table class="dec-table">
+        <thead>
+        <tr>
+            <th>{% trans "School" %}</th>
+            {% for letter in letters %}
+            <td>{{ letter }}</td>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <th>
+                {% trans "Potential Payoff" %}
+                {% if C.SHOW_TYPES and C.NR_TYPES > 1 %}
+                <br/>({% trans "You are"  %} {{ player.role }})
+                {% endif %}
+            </th>
+            {% for i in valuations %}
+            <td>{{ i|c }}</td>
+            {% endfor %}
+        </tr>
+        <tr>
+            <th>{% trans "Your preferences:" %}</th>
+            {% for i in player_prefs %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        </tr>
+        {% if C.SHOW_PRIORITIES %}
+        <tr>
+            <th>{% trans "Your Priorities in Each School<br/>(... out of" %} {{ players_per_group }})</th>
+            {% for i in priorities %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        <tr>
+            <th>{% trans "Your school:" %}</th>
+            {% for i in successful %}
+            <td>{% if i == True %} X {% else %} {% endif %}</td>
+            {% endfor %}
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<p class="heading">
+    {% trans "Your payoff is:" %} {{ player.payoff|c }}.
+</p>
+<p>
+    {% for entry in allocation_history %}
+    Round {{ entry.round }}: Allocated to {{ entry.allocation }}
+    {% endfor %}
+</p>
+<p>
+    {% for entry in payoff_history %}
+    Round {{ entry.round }}: Payoff {{ entry.payoff|c }}
+    {% endfor %}
+</p>
+
+{% next_button %}
+
+{% endblock %}

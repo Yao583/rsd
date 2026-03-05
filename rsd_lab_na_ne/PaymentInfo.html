@@ -1,0 +1,142 @@
+{# ============================================================================================= #}
+{# LOAD PACKAGES =============================================================================== #}
+{# ============================================================================================= #}
+{% extends "global/Page.html" %}
+{% load staticfiles otree %}
+{% load i18n %}
+
+
+{# ============================================================================================= #}
+{# LOAD STYLESHEET ============================================================================= #}
+{# ============================================================================================= #}
+{% block styles %}
+
+    <link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
+    <style>
+        .payment-info-box {
+            background-color: #f5f5f5;
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .redemption-code {
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 2px;
+            font-family: monospace;
+            margin: 20px 0;
+        }
+        .payment-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #0066cc;
+            background-color: #f9f9f9;
+        }
+    </style>
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE HEADING ================================================================================ #}
+{# ============================================================================================= #}
+{% block title %}
+
+    {% trans "Payment Information" %}
+
+{% endblock %}
+
+
+{# ============================================================================================= #}
+{# PAGE CONTENT ================================================================================ #}
+{# ============================================================================================= #}
+{% block content %}
+
+<p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>
+
+<p class="heading">
+  {% trans "Your Earnings from This Experiment" %}
+</p>
+
+<div class="payment-section">
+    <table class="dec-table">
+        <thead>
+        <tr>
+            <th colspan="2">{% trans "Payment Breakdown" %}</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <th>{% trans "Part 1 Earnings" %} ({% trans "Period" %} {{ e1_selected_pay_round }})</th>
+            <td>{{ e1_app_payoff }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Part 2 Earnings" %} ({% trans "Period" %} {{ e2_selected_pay_round }})</th>
+            <td>{{ e2_app_payoff }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Show-up Fee" %}</th>
+            <td>{{ show_up_fee }}</td>
+        </tr>
+        <tr style="font-weight: bold; background-color: #d4edda;">
+            <th>{% trans "Total Payment" %}</th>
+            <td><strong>{{ total_payment }}</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="payment-info-box">
+    <p class="justify">
+        {% blocktrans trimmed %}
+            Thank you for participating in this experiment! Your earnings have been calculated 
+            and will be paid out according to the instructions for this study.
+        {% endblocktrans %}
+    </p>
+
+    <p class="justify">
+        <strong>{% trans "Your Redemption Code:" %}</strong>
+    </p>
+    
+    <div class="redemption-code">
+        {{ redemption_code }}
+    </div>
+
+    <p class="justify" style="font-size: 0.9em; text-align: center; color: #666;">
+        {% blocktrans trimmed %}
+            Please save or write down this code for your payment records.
+        {% endblocktrans %}
+    </p>
+</div>
+
+<div class="payment-section">
+    <p class="justify">
+        <strong>{% trans "How to Receive Payment:" %}</strong>
+    </p>
+    <p class="justify">
+        {% blocktrans trimmed %}
+            Your payment will be processed according to the method specified for this study 
+            (e.g., cash at the laboratory, bank transfer, or other payment method). 
+            The experimenter will provide further instructions.
+        {% endblocktrans %}
+    </p>
+</div>
+
+<div class="payment-section">
+    <p class="justify">
+        <strong>{% trans "Questions?" %}</strong>
+    </p>
+    <p class="justify">
+        {% blocktrans trimmed %}
+            If you have any questions about your payment, please contact the experimenter.
+        {% endblocktrans %}
+    </p>
+</div>
+
+{% endblock %}

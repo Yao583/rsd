@@ -1,0 +1,167 @@
+{% extends "global/Page.html" %}
+{% load staticfiles otree %}
+{% load i18n %}
+
+{% block styles %}
+<link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
+<style>
+    .choose-btn { cursor: pointer; padding: 4px 12px; }
+    .choose-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+    .taken-cell { text-decoration: line-through; color: #999; }
+    #status-area { margin: 20px 0; padding: 15px; border-radius: 8px; font-size: 1.1em; }
+    .status-waiting  { background-color: #fff3cd; border: 1px solid #ffc107; }
+    .status-your-turn { background-color: #d4edda; border: 1px solid #28a745; }
+    .status-chosen   { background-color: #e2e3e5; border: 1px solid #6c757d; }
+    .status-done     { background-color: #d1ecf1; border: 1px solid #17a2b8; }
+</style>
+{% endblock %}
+
+{% block title %}
+    {% trans "Your Decision" %} &mdash; {% trans "Round" %} {{ round_number }}/{{ total_rounds }}
+{% endblock %}
+
+{% block content %}
+
+<p>Your priority rank this round: <strong>{{ my_priority }}</strong> out of {{ players_per_group }}.</p>
+
+<table class="dec-table">
+    <thead>
+    <tr>
+        <th>{% trans "Prizes" %}</th>
+        {% for letter in letters %}
+        <td>{{ letter }}</td>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>{% trans "Potential Payoff" %}</th>
+        {% for v in valuations %}
+        <td>{{ v|c }}</td>
+        {% endfor %}
+    </tr>
+    {% if C.SHOW_PRIORITIES %}
+    <tr>
+        <th>{% trans "Your Priority (... out of" %} {{ players_per_group }})</th>
+        {% for p in priorities %}
+        <td>{{ p }}</td>
+        {% endfor %}
+    </tr>
+    {% endif %}
+    {% if C.SHOW_CAPACITIES %}
+    <tr>
+        <th>{% trans "Capacities" %}</th>
+        {% for c in capacities %}
+        <td>{{ c }}</td>
+        {% endfor %}
+    </tr>
+    {% endif %}
+    <tr>
+        <th>{% trans "Status" %}</th>
+        {% for letter in letters %}
+        <td id="avail-{{ letter }}">Available</td>
+        {% endfor %}
+    </tr>
+    <tr id="choose-row" style="display:none;">
+        <th>{% trans "Choose" %}</th>
+        {% for letter in letters %}
+        <td>
+            <button type="button"
+                    class="btn btn-sm btn-success choose-btn"
+                    id="btn-{{ letter }}"
+                    data-prize-id="{{ forloop.counter }}"
+                    onclick="makeChoice(this)"
+                    style="display:none;">
+                &#10003;
+            </button>
+        </td>
+        {% endfor %}
+    </tr>
+    </tbody>
+</table>
+
+<div id="status-area" class="status-waiting">
+    <span id="status-text">Connecting&hellip;</span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const NUM_PRIZES = js_vars.nr_prizes;
+    const letters = [];
+    for (let i = 0; i < NUM_PRIZES; i++) {
+        letters.push(String.fromCharCode(65 + i));
+    }
+
+    let submitted = false;
+
+    function submitPage() {
+        if (submitted) return;
+        submitted = true;
+        document.querySelector("form").submit();
+    }
+
+    function makeChoice(btn) {
+        const prizeId = parseInt(btn.dataset.prizeId, 10);
+        liveSend({type: 'choice', prize_id: prizeId});
+        document.querySelectorAll('.choose-btn').forEach(function (b) { b.disabled = true; });
+    }
+
+    function liveRecv(data) {
+        const available   = data.available;
+        const isMyTurn    = data.is_my_turn;
+        const allDone     = data.all_done;
+        const myAssign    = data.my_assignment_letter;
+        const curPriority = data.current_chooser_priority;
+
+        for (let i = 0; i < NUM_PRIZES; i++) {
+            const letter  = letters[i];
+            const prizeId = i + 1;
+            const cell    = document.getElementById('avail-' + letter);
+            const btn     = document.getElementById('btn-' + letter);
+
+            if (available.includes(prizeId)) {
+                cell.textContent = 'Available';
+                cell.className   = '';
+            } else {
+                cell.textContent = 'Taken';
+                cell.className   = 'taken-cell';
+            }
+
+            if (isMyTurn && available.includes(prizeId)) {
+                btn.style.display = '';
+                btn.disabled = false;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        document.getElementById('choose-row').style.display = isMyTurn ? '' : 'none';
+
+        const area = document.getElementById('status-area');
+        const text = document.getElementById('status-text');
+
+        if (allDone) {
+            area.className = 'status-done';
+            text.innerHTML = 'All players have chosen. You received <strong>Prize ' +
+                             myAssign + '</strong>. Moving to next page&hellip;';
+            // Auto-advance after 2 seconds via direct form submission
+            setTimeout(submitPage, 2000);
+        } else if (isMyTurn) {
+            area.className = 'status-your-turn';
+            text.innerHTML = '<strong>It is your turn!</strong> Click the checkmark under the prize you want.';
+        } else if (myAssign) {
+            area.className = 'status-chosen';
+            text.innerHTML = 'You chose <strong>Prize ' + myAssign +
+                             '</strong>. Waiting for other players&hellip;';
+        } else {
+            area.className = 'status-waiting';
+            text.innerHTML = 'Waiting for the player with priority ' +
+                             curPriority + ' to choose&hellip;';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () { liveSend({type: 'get_state'}); });
+</script>
+{% endblock %}
