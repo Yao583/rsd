@@ -34,7 +34,6 @@ ROOMS = [
     dict(
         name='rsd_demo',
         display_name='RSD Demo Room',
-        participant_label_file='guest_list.txt',
     ),
 ]
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
