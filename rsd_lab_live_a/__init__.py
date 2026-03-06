@@ -12,27 +12,21 @@ the lowest-priority player picks last from whatever remains.
 
 class C(BaseConstants):
     NAME_IN_URL = 'rsd_lab_live_a'
-    PLAYERS_PER_GROUP = 4
-    NUM_ROUNDS = 2
-    VALUATIONS_1 = [1, 3, 5, 7]
-    VALUATIONS_2 = [1, 3, 5, 7]
-    VALUATIONS_3 = [1, 3, 5, 7]
-    VALUATIONS_4 = [1, 3, 5, 7]
-    VALUATION_TYPES = [VALUATIONS_1, VALUATIONS_2, VALUATIONS_3, VALUATIONS_4]
-    NR_TYPES = len(VALUATION_TYPES)
-    NR_PRIZES = len(VALUATIONS_1)
+    PLAYERS_PER_GROUP = 8
+    NUM_ROUNDS = 1
+    VALUATIONS = [1, 3, 5, 7, 9, 11, 13, 15]
+    NR_TYPES = len(VALUATIONS)
+    NR_PRIZES = len(VALUATIONS)
     COMMON_PRIORITY = list(range(1, PLAYERS_PER_GROUP + 1))
     CAPACITIES = [1] * NR_PRIZES
-    INSTRUCTIONS_EXAMPLE = True
     CONFIRM_BUTTON = True
     SHOW_CAPACITIES = False
-    SHOW_TYPES = True
+    SHOW_TYPES = False
     SHOW_VALUATIONS = False
-    SHOW_PRIORITIES = True
-
-
-class Subsession(BaseSubsession):
+    SHOW_PRIORITIES = False
+    ALIGNED = True  # Whether all participants have the same valuations
     priorities_by_prize = models.LongStringField()
+    round_valuations = models.LongStringField()
 
 
 class Group(BaseGroup):
@@ -82,7 +76,9 @@ class Player(BasePlayer):
         blank=True,
     )
 
-
+class Subsession(BaseSubsession):
+    round_valuations = models.LongStringField()
+    priorities_by_prize = models.LongStringField()
 # --- helpers -----------------------------------------------------------------
 
 def creating_session(subsession: Subsession):
@@ -90,6 +86,11 @@ def creating_session(subsession: Subsession):
     priorities = list(C.COMMON_PRIORITY)
     random.shuffle(priorities)
     subsession.priorities_by_prize = json.dumps(priorities)
+
+    # Generate round-specific valuations (same for all players, different each round)
+    valuations = list(C.VALUATIONS)  # base valuation list
+    random.shuffle(valuations)
+    subsession.round_valuations = json.dumps(valuations)
 
     # Initialise group-level state for sequential choice
     for group in subsession.get_groups():
@@ -100,14 +101,11 @@ def creating_session(subsession: Subsession):
         if subsession.round_number == 1:
             p.participant.vars['e1_schedule'] = []
             p.participant.vars['e1_successful'] = [False] * C.NR_PRIZES
-            p.participant.vars['e1_valuations'] = C.VALUATION_TYPES[
-                (p.id_in_group - 1) % C.NR_TYPES
-            ]
             p.participant.vars['e1_app_payoff'] = 0
 
 
 # --- pages -------------------------------------------------------------------
-
+# region Pages
 class Instructions(Page):
     @staticmethod
     def vars_for_template(player: Player):
@@ -122,11 +120,12 @@ class Instructions(Page):
             nr_prizes=C.NR_PRIZES,
             players_per_group=C.PLAYERS_PER_GROUP,
             nr_others = C.PLAYERS_PER_GROUP - 1,
+            nr_rounds = C.NUM_ROUNDS,
             nr_prizes_ordinal = ordinal(C.NR_PRIZES),
             indices=list(range(1, C.NR_PRIZES + 1)),
             letters=letters,
             letters_str = ','.join(letters),
-            valuations=C.VALUATION_TYPES[player.id_in_group - 1],
+            valuations=json.loads(player.subsession.round_valuations),
             priorities=[my_priority] * C.NR_PRIZES,
             capacities=C.CAPACITIES,
             round_number=player.subsession.round_number,
@@ -158,6 +157,12 @@ class Quiz(Page):
         return player.subsession.round_number == 1
 
 
+class Envelope(Page):
+    @staticmethod
+    def is_displayed(player):
+        return player.subsession.round_number == 1
+
+
 class DecisionWaitPage(WaitPage):
     """Synchronise players before sequential choice begins."""
     pass
@@ -176,9 +181,11 @@ class Decision(Page):
         my_priority = priority_map[player.id_in_group]
         return dict(
             nr_prizes=C.NR_PRIZES,
+            nr_others = C.PLAYERS_PER_GROUP - 1,
             players_per_group=C.PLAYERS_PER_GROUP,
             letters=[chr(ord('A') + j) for j in range(C.NR_PRIZES)],
-            valuations=C.VALUATION_TYPES[player.id_in_group - 1],
+                        letters_str = ','.join([chr(ord('A') + j) for j in range(C.NR_PRIZES)]),
+            valuations=json.loads(player.subsession.round_valuations),
             my_priority=my_priority,
             priorities=[my_priority] * C.NR_PRIZES,
             capacities=C.CAPACITIES,
@@ -224,10 +231,7 @@ class Decision(Page):
                 player.assigned_prize = prize_id
 
                 # payoff
-                valuations = player.participant.vars.get(
-                    'e1_valuations',
-                    C.VALUATION_TYPES[(player.id_in_group - 1) % C.NR_TYPES],
-                )
+                valuations = json.loads(group.subsession.round_valuations)
                 player.payoff = valuations[prize_id - 1]
 
                 # schedule / successful
@@ -306,7 +310,7 @@ class Results(Page):
             total_rounds=C.NUM_ROUNDS,
             selected_pay_round=selected_pay_round,
             letters=[chr(ord('A') + j) for j in range(C.NR_PRIZES)],
-            valuations=C.VALUATION_TYPES[player.id_in_group - 1],
+            valuations=json.loads(player.in_round(selected_pay_round).subsession.round_valuations),
             players_per_group=C.PLAYERS_PER_GROUP,
             priorities=[my_priority] * C.NR_PRIZES,
             successful=player.participant.vars.get('e1_successful', []),
@@ -357,6 +361,6 @@ class PaymentInfo(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.subsession.round_number == C.NUM_ROUNDS
+# endregion
 
-
-page_sequence = [Instructions, DecisionWaitPage, Decision, ResultsWaitPage, Results]
+page_sequence = [Instructions, Envelope, DecisionWaitPage, Decision, ResultsWaitPage, Results]

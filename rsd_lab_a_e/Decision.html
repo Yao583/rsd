@@ -33,106 +33,95 @@
 
 <p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>
 
-<p class="justify">
-    {% blocktrans trimmed %}
-        Please rank the prizes by choosing them in order from most to least preferred.
-        You can rank as many or as few prizes as you like, but each prize can only be used once.
-    {% endblocktrans %}
-</p>
-
+<div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ffc107; border-radius: 8px; background-color: #fff3cd;">
+    <p><strong>Reminder:</strong></p>
+    <ul style="margin-bottom: 0;">
+        <li>You are in a group with {{ nr_others }} other participants.</li>
+        <li>Each participant will rank prizes, potentially one per envelope. No participant will see the envelopes submitted by another participant.</li>
+        <li>Each participant will get a prize priority.</li>
+        <li>The allocation process will use the envelopes and the prize priorities to assign a prize to each participant in your group.</li>
+        <li>Recall that if all the prizes you submit in an envelope are unavailable when your prize priority is reached, you will be unmatched. 
+            All participants who are unmatched will be randomly allocated one of the available prizes available at the end of the process.</li>
+        <li>Recall that the interface will consider your envelopes one at a time. That is, when it considers any of your envelopes, the interface will not know what you entered in other envelopes.</li>
+    </ul>
+</div>
 
 <div>
     <table class="dec-table">
         <thead>
         <tr>
-            <th>{% trans "Prizes" %}</th>
+            <th>{% trans "Prize" %}</th>
             {% for letter in letters %}
-            <td>
-                {{ letter }}
-            </td>
+            <td>{{ letter }}</td>
             {% endfor %}
         </tr>
         </thead>
         <tbody>
         <tr>
             <th>
-                {% trans "Potential Payoff" %}
+                {% if C.ALIGNED %}
+                {% trans "Value to Any Participant" %}
+                {% else %}
+                {% trans "Value to You" %}
+                {% endif %}
             </th>
             {% for i in valuations %}
-            <td>{{ i|c }}</td>
+            <td>${{ i }}</td>
             {% endfor %}
         </tr>
-        {% if C.SHOW_PRIORITIES %}
-        <tr>
-            <th>{% trans "Your Priorities in Each Prize" %} </th>
-            {% for i in priorities %}
-            <td>{{ i }}</td>
-            {% endfor %}
-        </tr>
-        {% endif %}
-        {% if C.SHOW_CAPACITIES %}
-        <tr>
-            <th>{% trans "Capacities" %}</th>
-            {% for i in capacities %}
-            <td>{{ i }}</td>
-            {% endfor %}
-        </tr>
-        {% endif %}
         </tbody>
     </table>
 </div>
 
-<div>
-    <p class="justify">
-        {% blocktrans trimmed %}
-            Enter your ranking as a sequence of letters (e.g., "AB" means A is 1st choice, B is 2nd choice).
-        {% endblocktrans %}
-    </p>
-</div>
-
-<div>
-    {% formfield form.pref_ranking %}
-</div>
-
-{% if C.SHOW_VALUATIONS and C.SHOW_TYPES and C.NR_TYPES > 1 %}
 <p class="justify">
     {% blocktrans trimmed %}
-        In addition, you know the valuations of the other Types:
+      In the table above, under each prize {{ letters_str }}
+      you can see how much money it would add to <strong>your</strong> earnings.
     {% endblocktrans %}
 </p>
 
-<div>
-    <table class="dec-table">
-        <thead>
-        <tr>
-            <th>{% trans "School" %}</th>
-            {% for letter in letters %}
-            <td>
-                {{ letter }}
-            </td>
-            {% endfor %}
-        </tr>
-        </thead>
-        <tbody>
-            {% for type, valuations in valuations_others %}
-
-            <tr>
-                <th>{% trans "Potential Payoff<br/>for" %} {{ type }}</th>
-                {% for v in valuations %}
-                <td>{{ v|c }}</td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-<br/>
+{% if C.ALIGNED %}
+<p class="justify">
+    {% blocktrans trimmed %}
+      Every participant values the prizes the same way.
+    {% endblocktrans %}
+</p>
+{% else %}
+<p class="justify">
+    {% blocktrans trimmed %}
+      Each participant can only see how much each prize is worth to <strong>themselves</strong>.
+    {% endblocktrans %}
+</p>
 {% endif %}
-<br/>
-{% if C.CONFIRM_BUTTON %}
 
+<p class="justify">
+    {% blocktrans trimmed %}
+        Please submit your envelopes.
+    {% endblocktrans %}
+</p>
+
+<div style="margin-top: 15px;">
+    {% for rank_num in indices %}
+    <div class="envelope-row" id="envelope-row-{{ rank_num }}" style="margin-bottom: 10px; display: flex; align-items: center;{% if rank_num != 1 %} display: none;{% endif %}">
+        <label style="min-width: 110px;"><strong>Envelope {{ rank_num }}:</strong></label>
+        <select class="rank-dropdown form-select" style="width: auto; display: inline-block; margin-left: 8px;">
+            <option value="">-- No prize --</option>
+            {% for letter in letters %}
+            <option value="{{ letter }}">Prize {{ letter }}</option>
+            {% endfor %}
+        </select>
+        {% if rank_num != indices|length %}
+        <button type="button" class="btn btn-primary btn-sm next-envelope-btn" id="next-env-btn-{{ rank_num }}" style="margin-left: 10px;{% if rank_num != 1 %} display: none;{% endif %}" onclick="revealNextEnvelope({{ rank_num }})">Next Envelope</button>
+        {% endif %}
+    </div>
+    {% endfor %}
+    <input type="hidden" name="pref_ranking" id="id_pref_ranking" value="">
+</div>
+
+
+{% if C.CONFIRM_BUTTON %}
 <div>
-    <button id="button" class="btn btn-primary btn-large"  type="button" onclick="showhide()">Next</button>
+    <button id="button" class="btn btn-primary btn-large"  type="button" onclick="showhide()">Submit</button>
 
     <br/><br/>
 
@@ -163,6 +152,36 @@
      {
            var div = document.getElementById("confirm_next");
             div.style.display = "block";
+     }
+
+     function revealNextEnvelope(currentNum) {
+         var nextNum = currentNum + 1;
+         var nextRow = document.getElementById('envelope-row-' + nextNum);
+         if (nextRow) {
+             nextRow.style.display = 'flex';
+             var nextBtn = document.getElementById('next-env-btn-' + nextNum);
+             if (nextBtn) { nextBtn.style.display = ''; }
+         }
+         var currentBtn = document.getElementById('next-env-btn-' + currentNum);
+         if (currentBtn) { currentBtn.style.display = 'none'; }
+     }
+
+     function updateRanking() {
+         var selects = document.querySelectorAll('.rank-dropdown');
+         var ranking = '';
+         selects.forEach(function(sel) {
+             if (sel.value) { ranking += sel.value; }
+         });
+         document.getElementById('id_pref_ranking').value = ranking;
+     }
+
+     document.querySelectorAll('.rank-dropdown').forEach(function(sel) {
+         sel.addEventListener('change', updateRanking);
+     });
+
+     var form = document.querySelector('form');
+     if (form) {
+         form.addEventListener('submit', function() { updateRanking(); });
      }
 </script>
 

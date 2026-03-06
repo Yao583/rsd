@@ -10,40 +10,25 @@ This app matches prizes to participants using the Random Serial Dictatorship (RS
 
 class C(BaseConstants):
     NAME_IN_URL = 'rsd_lab_a_ne'
-    PLAYERS_PER_GROUP = 4
-    NUM_ROUNDS = 2
-    # Heterogeneous valuations for the 8 prizes, 4 types for now
-    # VALUATIONS_1 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_2 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_3 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_4 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_5 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_6 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_7 = [1, 3, 5, 7, 9, 11, 13, 15]
-    # VALUATIONS_8 = [1, 3, 5, 7, 9, 11, 13, 15]
-    VALUATIONS_1 = [1, 3, 5, 7]
-    VALUATIONS_2 = [1, 3, 5, 7]
-    VALUATIONS_3 = [1, 3, 5, 7]
-    VALUATIONS_4 = [1, 3, 5, 7]
-    VALUATION_TYPES = [VALUATIONS_1, VALUATIONS_2, VALUATIONS_3, VALUATIONS_4]#, VALUATIONS_5, VALUATIONS_6, VALUATIONS_7, VALUATIONS_8]
-    NR_TYPES = len(VALUATION_TYPES) # number of types of preferences
-    NR_PRIZES = len(VALUATIONS_1)
-    # Common Priority orders across prizes
-    # PRIORITIES_P1 = [1, 2, 3, 4, 5, 6, 7, 8]
+    PLAYERS_PER_GROUP = 8
+    NUM_ROUNDS = 1
+    VALUATIONS = [1, 3, 5, 7, 9, 11, 13, 15]
+    NR_TYPES = len(VALUATIONS) # number of types of preferences
+    NR_PRIZES = len(VALUATIONS)
     COMMON_PRIORITY = list(range(1, PLAYERS_PER_GROUP + 1))
     CAPACITIES = [1] * NR_PRIZES # each prize can only be assigned to one participant
-    # Maybe delete later these conditions
-    INSTRUCTIONS_EXAMPLE = True # Whether to show an example in the instructions
     CONFIRM_BUTTON = True # Whether to show a confirm button on the decision page
     SHOW_CAPACITIES = False # Whether to show capacities on the decision page and in the instructions
-    SHOW_TYPES = True # Whether to tell players there are multiple types of players
+    SHOW_TYPES = False # Whether to tell players there are multiple types of players
     SHOW_VALUATIONS = False # Whether to show a player other players' valuations on the decision page
-    SHOW_PRIORITIES = True # whetehr to show a player the schools' priorities for her
+    SHOW_PRIORITIES = False # whetehr to show a player the schools' priorities for her
+    ALIGNED = True # Whether all participants have the same valuations
 
 
 
 class Subsession(BaseSubsession):
     priorities_by_prize = models.LongStringField()
+    round_valuations = models.LongStringField()
 
 
 class Group(BaseGroup):
@@ -51,7 +36,7 @@ class Group(BaseGroup):
 
 
 class Player(BasePlayer):
-    pref_ranking = models.CharField(label="", max_length=C.NR_PRIZES, blank=False)
+    pref_ranking = models.CharField(label="", max_length=C.NR_PRIZES, blank=True)
     # Quiz response field
     quiz_response = models.CharField(label="", max_length=500, blank=True)
     # Demographics fields
@@ -107,11 +92,15 @@ def creating_session(subsession: Subsession):
     random.shuffle(priorities)
     subsession.priorities_by_prize = json.dumps(priorities)
 
+    # Generate round-specific valuations (same for all players, different each round)
+    valuations = list(C.VALUATIONS)
+    random.shuffle(valuations)
+    subsession.round_valuations = json.dumps(valuations)
+
     for p in subsession.get_players():
         if subsession.round_number == 1:
             p.participant.vars['e1_schedule'] = []
             p.participant.vars['e1_successful'] = [False] * C.NR_PRIZES
-            p.participant.vars['e1_valuations'] = C.VALUATION_TYPES[(p.id_in_group - 1) % C.NR_TYPES]
             p.participant.vars['e1_player_prefs'] = []
             p.participant.vars['e1_selected_pay_round'] = None
             p.participant.vars['total_payment'] = cu(0)
@@ -119,12 +108,11 @@ def creating_session(subsession: Subsession):
 
 def is_valid_ranking_string(ranking: str):
     ranking = (ranking or '').strip().upper()
-    if not ranking or len(ranking) > C.NR_PRIZES:
+    if len(ranking) > C.NR_PRIZES:
         return False
-    ranking_set = set(ranking)
-    if len(ranking_set) != len(ranking):
-        return False
-    return ranking_set.issubset(EXPECTED_PRIZE_SET)
+    if not ranking:
+        return True
+    return set(ranking).issubset(EXPECTED_PRIZE_SET)
 
 def map_ranking_string_to_prefs(ranking: str):
     """Map ranking string like 'BCA' to per-prize ranks like [3, 1, 2]."""
@@ -160,7 +148,6 @@ def get_allocation(group: Group):
         assigned_prize_by_player_id[p.id_in_group] = assigned_prize
 
         if assigned_prize is None:
-            p.participant.vars['e1_successful'] = [False] * C.NR_PRIZES # unmatched
             continue
 
         schedule = p.participant.vars.get('e1_schedule', [])
@@ -169,8 +156,25 @@ def get_allocation(group: Group):
         p.participant.vars['e1_schedule'] = schedule
         p.participant.vars['e1_successful'] = [i + 1 == assigned_prize for i in range(C.NR_PRIZES)]
 
-        valuations = p.participant.vars.get('e1_valuations', C.VALUATION_TYPES[(p.id_in_group - 1) % C.NR_TYPES])
+        valuations = json.loads(group.subsession.round_valuations)
         p.payoff = valuations[assigned_prize - 1]
+
+    # Second allocation: randomly assign remaining prizes to unmatched players
+    unmatched = [p for p in players if assigned_prize_by_player_id.get(p.id_in_group) is None]
+    remaining = list(available_prizes)
+    random.shuffle(remaining)
+    for p, prize_id in zip(unmatched, remaining):
+        assigned_prize_by_player_id[p.id_in_group] = prize_id
+        available_prizes.discard(prize_id)
+
+        schedule = p.participant.vars.get('e1_schedule', [])
+        priority_position = priority_map[p.id_in_group]
+        schedule.append([p.round_number, priority_position, prize_id])
+        p.participant.vars['e1_schedule'] = schedule
+        p.participant.vars['e1_successful'] = [i + 1 == prize_id for i in range(C.NR_PRIZES)]
+
+        valuations = json.loads(group.subsession.round_valuations)
+        p.payoff = valuations[prize_id - 1]
 
 # endregion
 # region PAGES
@@ -188,11 +192,12 @@ class Instructions(Page):
             nr_prizes = C.NR_PRIZES,
             nr_prizes_ordinal = ordinal(C.NR_PRIZES),
             nr_others = C.PLAYERS_PER_GROUP - 1,
+            nr_rounds = C.NUM_ROUNDS,
             players_per_group = C.PLAYERS_PER_GROUP,
             indices = [j for j in range(1, C.NR_PRIZES + 1)],
             letters = letters,
             letters_str = ','.join(letters),
-            valuations = C.VALUATION_TYPES[player.id_in_group - 1],
+            valuations = json.loads(player.subsession.round_valuations),
             priorities = [my_priority] * C.NR_PRIZES,
             capacities = C.CAPACITIES,
             round_number = player.subsession.round_number,
@@ -205,6 +210,21 @@ class Quiz(Page):
     form_model = 'player'
     form_fields = ['quiz_response']
     @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            nr_prizes = C.NR_PRIZES,
+            players_per_group = C.PLAYERS_PER_GROUP,
+            indices = [j for j in range(1, C.NR_PRIZES + 1)],
+            letters = [chr(ord('A') + j) for j in range(C.NR_PRIZES)],
+            round_number = player.subsession.round_number,
+            total_rounds = C.NUM_ROUNDS
+        )
+    @staticmethod
+    def is_displayed(player):
+        return player.subsession.round_number == 1
+
+class Envelope(Page):
+    @ staticmethod
     def vars_for_template(player: Player):
         return dict(
             nr_prizes = C.NR_PRIZES,
@@ -230,11 +250,13 @@ class Decision(Page):
         my_priority = priority_map[player.id_in_group]
         return dict(
             nr_prizes = C.NR_PRIZES,
+            nr_others = C.PLAYERS_PER_GROUP - 1,
             players_per_group = C.PLAYERS_PER_GROUP,
             indices = [j for j in range(1, C.NR_PRIZES + 1)],
             letters = [chr(ord('A') + j) for j in range(C.NR_PRIZES)],
+            letters_str = ','.join([chr(ord('A') + j) for j in range(C.NR_PRIZES)]),
             prize_options = list(zip(range(1, C.NR_PRIZES + 1), [chr(ord('A') + j) for j in range(C.NR_PRIZES)])),
-            valuations = C.VALUATION_TYPES[player.id_in_group - 1],
+            valuations = json.loads(player.subsession.round_valuations),
             priorities = [my_priority]*C.NR_PRIZES,
             capacities = C.CAPACITIES,
             round_number = player.subsession.round_number,
@@ -248,7 +270,7 @@ class Decision(Page):
     def error_message(player: Player, values):
         ranking = values.get('pref_ranking', '').strip().upper()
         if not is_valid_ranking_string(ranking):
-            return 'Please enter a ranking using unique letters A-H only (for example: ABF or ABCDEFGH).'
+            return 'Please select valid prizes from the dropdown menus.'
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -285,7 +307,7 @@ class Results(Page):
             total_rounds = C.NUM_ROUNDS,
             selected_pay_round=selected_pay_round,
             letters = [chr(ord('A') + j) for j in range(C.NR_PRIZES)],
-            valuations = C.VALUATION_TYPES[player.id_in_group - 1],
+            valuations = json.loads(player.in_round(selected_pay_round).subsession.round_valuations),
             player_prefs = player.participant.vars.get('e1_player_prefs', []),
             players_per_group = C.PLAYERS_PER_GROUP,
             priorities = [my_priority]*C.NR_PRIZES,
