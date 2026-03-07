@@ -5,8 +5,6 @@
 {% block styles %}
 <link href="{% static 'da/css/style.css' %}" rel="stylesheet"/>
 <style>
-    .choose-btn { cursor: pointer; padding: 4px 12px; }
-    .choose-btn:disabled { cursor: not-allowed; opacity: 0.4; }
     .taken-cell { text-decoration: line-through; color: #999; }
     #status-area { margin: 20px 0; padding: 15px; border-radius: 8px; font-size: 1.1em; }
     .status-waiting  { background-color: #fff3cd; border: 1px solid #ffc107; }
@@ -64,23 +62,28 @@
         <td id="avail-{{ letter }}">Available</td>
         {% endfor %}
     </tr>
-    <tr id="choose-row" style="display:none;">
-        <th>{% trans "Choose" %}</th>
-        {% for letter in letters %}
-        <td>
-            <button type="button"
-                    class="btn btn-sm btn-success choose-btn"
-                    id="btn-{{ letter }}"
-                    data-prize-id="{{ forloop.counter }}"
-                    onclick="makeChoice(this)"
-                    style="display:none;">
-                &#10003;
-            </button>
-        </td>
-        {% endfor %}
-    </tr>
     </tbody>
 </table>
+
+<div id="ranking-area" style="margin-top: 15px; display: none;">
+    <p class="justify">
+        {% blocktrans trimmed %}
+            Please submit your rankings.
+        {% endblocktrans %}
+    </p>
+    {% for rank_num in indices %}
+    <div style="margin-bottom: 10px; display: flex; align-items: center;">
+        <label style="min-width: 80px;"><strong>Rank {{ rank_num }}:</strong></label>
+        <select class="rank-dropdown form-select" style="width: auto; display: inline-block; margin-left: 8px;">
+            <option value="">-- No prize --</option>
+            {% for letter in letters %}
+            <option value="{{ letter }}">Prize {{ letter }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endfor %}
+    <button type="button" id="submit-ranking-btn" class="btn btn-primary btn-large" onclick="submitRanking()">Submit Ranking</button>
+</div>
 
 <div id="status-area" class="status-waiting">
     <span id="status-text">Connecting&hellip;</span>
@@ -421,6 +424,9 @@
     }
 
     let submitted = false;
+    let turnTimer = null;
+    let turnCountdown = null;
+    const TURN_TIMEOUT = 90;
 
     function submitPage() {
         if (submitted) return;
@@ -428,10 +434,58 @@
         document.querySelector("form").submit();
     }
 
-    function makeChoice(btn) {
-        const prizeId = parseInt(btn.dataset.prizeId, 10);
-        liveSend({type: 'choice', prize_id: prizeId});
-        document.querySelectorAll('.choose-btn').forEach(function (b) { b.disabled = true; });
+    function clearTurnTimer() {
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        if (turnCountdown) { clearInterval(turnCountdown); turnCountdown = null; }
+        var el = document.getElementById('countdown-display');
+        if (el) el.textContent = '';
+    }
+
+    function startTurnTimer() {
+        clearTurnTimer();
+        var remaining = TURN_TIMEOUT;
+        var el = document.getElementById('countdown-display');
+        if (el) el.textContent = 'Time remaining: ' + remaining + 's';
+        turnCountdown = setInterval(function() {
+            remaining--;
+            if (el) el.textContent = 'Time remaining: ' + remaining + 's';
+            if (remaining <= 0) clearInterval(turnCountdown);
+        }, 1000);
+        turnTimer = setTimeout(function() {
+            clearTurnTimer();
+            liveSend({type: 'ranking', ranking: ''});
+            document.getElementById('submit-ranking-btn').disabled = true;
+            document.querySelectorAll('.rank-dropdown').forEach(function(sel) { sel.disabled = true; });
+        }, TURN_TIMEOUT * 1000);
+    }
+
+    function submitRanking() {
+        clearTurnTimer();
+        var selects = document.querySelectorAll('.rank-dropdown');
+        var ranking = '';
+        selects.forEach(function(sel) {
+            if (sel.value) { ranking += sel.value; }
+        });
+        liveSend({type: 'ranking', ranking: ranking});
+        document.getElementById('submit-ranking-btn').disabled = true;
+        selects.forEach(function(sel) { sel.disabled = true; });
+    }
+
+    function updateDropdownOptions(available) {
+        var availableLetters = available.map(function(pid) {
+            return String.fromCharCode(64 + pid);
+        });
+        document.querySelectorAll('.rank-dropdown').forEach(function(sel) {
+            var currentVal = sel.value;
+            var options = sel.querySelectorAll('option');
+            options.forEach(function(opt) {
+                if (opt.value === '') return;
+                opt.disabled = !availableLetters.includes(opt.value);
+            });
+            if (currentVal && !availableLetters.includes(currentVal)) {
+                sel.value = '';
+            }
+        });
     }
 
     function liveRecv(data) {
@@ -440,48 +494,47 @@
         const allDone     = data.all_done;
         const myAssign    = data.my_assignment_letter;
         const curPriority = data.current_chooser_priority;
+        const isUnmatched = data.is_unmatched;
 
         for (let i = 0; i < NUM_PRIZES; i++) {
             const letter  = letters[i];
-            const prizeId = i + 1;
             const cell    = document.getElementById('avail-' + letter);
-            const btn     = document.getElementById('btn-' + letter);
 
-            if (available.includes(prizeId)) {
+            if (available.includes(i + 1)) {
                 cell.textContent = 'Available';
                 cell.className   = '';
             } else {
                 cell.textContent = 'Taken';
                 cell.className   = 'taken-cell';
             }
-
-            if (isMyTurn && available.includes(prizeId)) {
-                btn.style.display = '';
-                btn.disabled = false;
-            } else {
-                btn.style.display = 'none';
-            }
         }
 
-        document.getElementById('choose-row').style.display = isMyTurn ? '' : 'none';
-
-        const area = document.getElementById('status-area');
-        const text = document.getElementById('status-text');
+        var rankingArea = document.getElementById('ranking-area');
+        var area = document.getElementById('status-area');
+        var text = document.getElementById('status-text');
 
         if (allDone) {
+            clearTurnTimer();
+            rankingArea.style.display = 'none';
             area.className = 'status-done';
-            text.innerHTML = 'All players have chosen. You received <strong>Prize ' +
-                             myAssign + '</strong>. Moving to next page&hellip;';
-            // Auto-advance after 2 seconds via direct form submission
+            text.innerHTML = 'All players have chosen. Moving to next page&hellip;';
             setTimeout(submitPage, 2000);
         } else if (isMyTurn) {
+            rankingArea.style.display = '';
+            updateDropdownOptions(available);
+            document.getElementById('submit-ranking-btn').disabled = false;
+            document.querySelectorAll('.rank-dropdown').forEach(function(sel) { sel.disabled = false; });
             area.className = 'status-your-turn';
-            text.innerHTML = '<strong>It is your turn!</strong> Click the checkmark under the prize you want.';
-        } else if (myAssign) {
+            text.innerHTML = '<strong>It is your turn!</strong> Rank the available prizes and click Submit Ranking. <span id="countdown-display"></span>';
+            startTurnTimer();
+        } else if (isUnmatched) {
+            clearTurnTimer();
+            rankingArea.style.display = 'none';
             area.className = 'status-chosen';
-            text.innerHTML = 'You chose <strong>Prize ' + myAssign +
-                             '</strong>. Waiting for other players&hellip;';
+            text.innerHTML = 'You are unmatched. Waiting for the second allocation process&hellip;';
         } else {
+            clearTurnTimer();
+            rankingArea.style.display = 'none';
             area.className = 'status-waiting';
             text.innerHTML = 'Waiting for the player with priority ' +
                              curPriority + ' to choose&hellip;';

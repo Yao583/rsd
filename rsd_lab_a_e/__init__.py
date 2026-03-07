@@ -11,7 +11,7 @@ This app matches prizes to participants using the Random Serial Dictatorship (RS
 class C(BaseConstants):
     NAME_IN_URL = 'rsd_lab_a_e'
     PLAYERS_PER_GROUP = 8
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 2
     VALUATIONS = [1, 3, 5, 7, 9, 11, 13, 15]
     NR_TYPES = len(VALUATIONS) # number of types of preferences
     NR_PRIZES = len(VALUATIONS)
@@ -280,8 +280,7 @@ class Decision(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         if timeout_happened:
-            # Default ranking: alphabetical order (ABCD)
-            player.pref_ranking = ''.join(chr(ord('A') + i) for i in range(C.NR_PRIZES))
+            player.pref_ranking = ''
         else:
             player.pref_ranking = (player.pref_ranking or '').strip().upper()
         player.participant.vars['e1_player_prefs'] = [[rank] for rank in map_ranking_string_to_prefs(player.pref_ranking)]

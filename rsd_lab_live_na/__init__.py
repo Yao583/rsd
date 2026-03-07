@@ -13,7 +13,7 @@ the lowest-priority player picks last from whatever remains.
 class C(BaseConstants):
     NAME_IN_URL = 'rsd_lab_live_na'
     PLAYERS_PER_GROUP = 8
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 2
     VALUATIONS = [1, 3, 5, 7, 9, 11, 13, 15]
     NR_TYPES = len(VALUATIONS)
     NR_PRIZES = len(VALUATIONS)
@@ -77,7 +77,7 @@ class Player(BasePlayer):
     )
 
 class Subsession(BaseSubsession):
-    round_valuations = models.LongStringField()
+    # round_valuations = models.LongStringField()
     priorities_by_prize = models.LongStringField()
 # --- helpers -----------------------------------------------------------------
 
@@ -224,14 +224,22 @@ class Decision(Page):
                 current_chooser = p
                 break
 
-        # -- process a choice -------------------------------------------------
+        # -- process a ranking ------------------------------------------------
         if (
-            data.get('type') == 'choice'
+            data.get('type') == 'ranking'
             and current_chooser
             and current_chooser.id_in_group == player.id_in_group
         ):
-            prize_id = int(data.get('prize_id', 0))
-            if prize_id in available:
+            ranking_str = data.get('ranking', '').strip().upper()
+            # Find the top-ranked available prize
+            prize_id = None
+            for ch in ranking_str:
+                pid = ord(ch) - ord('A') + 1
+                if pid in available:
+                    prize_id = pid
+                    break
+
+            if prize_id is not None:
                 available.remove(prize_id)
                 assignments[str(player.id_in_group)] = prize_id
                 player.assigned_prize = prize_id
@@ -249,10 +257,44 @@ class Decision(Page):
                 player.participant.vars['e2_successful'] = [
                     i + 1 == prize_id for i in range(C.NR_PRIZES)
                 ]
+            else:
+                # No ranked prize available or empty ranking – mark unmatched
+                assignments[str(player.id_in_group)] = 0
+                player.assigned_prize = 0
 
-                # persist group state
-                group.available_prizes_json = json.dumps(available)
+            # persist group state
+            group.available_prizes_json = json.dumps(available)
+            group.assignments_json = json.dumps(assignments)
+
+        # -- randomly assign unmatched players if all done --------------------
+        assignments = json.loads(group.assignments_json)
+        available = json.loads(group.available_prizes_json)
+        if len(assignments) >= C.PLAYERS_PER_GROUP:
+            unmatched = [
+                (pid_str, next(p for p in players if str(p.id_in_group) == pid_str))
+                for pid_str, val in assignments.items() if val == 0
+            ]
+            if unmatched:
+                remaining = sorted(available)
+                random.shuffle(remaining)
+                for i, (pid_str, p) in enumerate(unmatched):
+                    if i < len(remaining):
+                        prize = remaining[i]
+                        assignments[pid_str] = prize
+                        available.remove(prize)
+                        p.assigned_prize = prize
+                        vals = json.loads(p.player_valuations)
+                        p.payoff = vals[prize - 1]
+                        schedule = p.participant.vars.get('e2_schedule', [])
+                        schedule.append(
+                            [p.round_number, priority_map[p.id_in_group], prize]
+                        )
+                        p.participant.vars['e2_schedule'] = schedule
+                        p.participant.vars['e2_successful'] = [
+                            j + 1 == prize for j in range(C.NR_PRIZES)
+                        ]
                 group.assignments_json = json.dumps(assignments)
+                group.available_prizes_json = json.dumps(available)
 
         # -- build response for every player ----------------------------------
         all_done = len(assignments) >= C.PLAYERS_PER_GROUP
@@ -278,6 +320,7 @@ class Decision(Page):
                 my_assignment_letter=(
                     chr(ord('A') + my_assign - 1) if my_assign else None
                 ),
+                is_unmatched=(my_assign == 0),
                 my_priority=priority_map[p.id_in_group],
             )
         return response
