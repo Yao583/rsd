@@ -179,10 +179,16 @@ class Decision(Page):
         priorities = json.loads(player.subsession.priorities_by_prize)
         priority_map = {pid: rank for rank, pid in enumerate(priorities, start=1)}
         my_priority = priority_map[player.id_in_group]
+        def ordinal(n):
+            s = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10 * (n % 100 not in (11, 12, 13)), 'th')
+            return f"{n}{s}"
         return dict(
             nr_prizes=C.NR_PRIZES,
+            nr_prizes_ordinal=ordinal(C.NR_PRIZES),
+            nr_rounds=C.NUM_ROUNDS,
             nr_others = C.PLAYERS_PER_GROUP - 1,
             players_per_group=C.PLAYERS_PER_GROUP,
+            indices=list(range(1, C.NR_PRIZES + 1)),
             letters=[chr(ord('A') + j) for j in range(C.NR_PRIZES)],
                         letters_str = ','.join([chr(ord('A') + j) for j in range(C.NR_PRIZES)]),
             valuations=json.loads(player.subsession.round_valuations),
@@ -363,4 +369,4 @@ class PaymentInfo(Page):
         return player.subsession.round_number == C.NUM_ROUNDS
 # endregion
 
-page_sequence = [Instructions, Envelope, DecisionWaitPage, Decision, ResultsWaitPage, Results]
+page_sequence = [Instructions, DecisionWaitPage, Decision, ResultsWaitPage, Results]

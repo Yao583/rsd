@@ -242,25 +242,7 @@ class Decision(Page):
     form_fields = ['pref_ranking']
     timeout_seconds = 90
 
-    @staticmethod
-    def vars_for_template(player: Player):
-        priorities = json.loads(player.subsession.priorities_by_prize)
-        priority_map = {player_id: rank for rank, player_id in enumerate(priorities, start=1)}
-        my_priority = priority_map[player.id_in_group]
-        return dict(
-            nr_prizes = C.NR_PRIZES,
-            nr_others = C.PLAYERS_PER_GROUP - 1,
-            players_per_group = C.PLAYERS_PER_GROUP,
-            indices = [j for j in range(1, C.NR_PRIZES + 1)],
-            letters = [chr(ord('A') + j) for j in range(C.NR_PRIZES)],
-            letters_str = ','.join([chr(ord('A') + j) for j in range(C.NR_PRIZES)]),
-            prize_options = list(zip(range(1, C.NR_PRIZES + 1), [chr(ord('A') + j) for j in range(C.NR_PRIZES)])),
-            valuations = json.loads(player.player_valuations),
-            priorities = [my_priority]*C.NR_PRIZES,
-            capacities = C.CAPACITIES,
-            round_number = player.subsession.round_number,
-            total_rounds = C.NUM_ROUNDS
-        )
+
     @staticmethod
     def is_displayed(player: Player):
         return True

@@ -33,6 +33,8 @@
 
 <p class="justify"><strong>{% trans "Round" %} {{ round_number }}/{{ total_rounds }}</strong></p>
 
+<p><a href="#" data-bs-toggle="modal" data-bs-target="#instructionsModal">{% trans "View Instructions" %}</a></p>
+
 <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ffc107; border-radius: 8px; background-color: #fff3cd;">
     <p><strong>Reminder:</strong></p>
     <ul style="margin-bottom: 0;">
@@ -121,11 +123,11 @@
     <br/><br/>
 
     <div id="confirm_next" style="display: none">
-        {% trans "Are you sure that all your inputs are correct?" %}
+        {% trans "Once you click on confirm your choices are final" %}
 
         <br/><br/>
 
-        <button id="button_confirm" class="btn btn-primary btn-large" >{% trans "Yes" %}</button>
+        <button id="button_confirm" class="btn btn-primary btn-large" >{% trans "Confirm" %}</button>
     </div>
 </div>
 
@@ -133,6 +135,330 @@
 {% next_button %}
 
 {% endif %}
+
+{# ============================================================================================= #}
+{# INSTRUCTIONS MODAL ========================================================================== #}
+{# ============================================================================================= #}
+<div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="instructionsModalLabel">{% trans "Instructions" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+
+<p class="justify">
+    Welcome.
+</p>
+<p class="justify">
+    This experiment consists of two parts. Each part has {{ nr_rounds }} periods. Once you finish the study
+    one period is randomly selected and your bonus payment corresponds to the earnings you receive in that
+    randomly selected period.
+</p>
+<p class="heading">
+    {% trans "Part 1" %}
+</p>
+
+<div class="instr-section">
+<p class="justify">
+    {% blocktrans trimmed %}
+      In this study, you and {{ nr_others }} other participants are going to play a game for {{ nr_prizes }} prizes.
+      Each prize is worth money, but might be worth a different amount of money for each participant.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You and the other participants will each rank prizes in any order you wish. Then, an <strong>allocation process</strong>
+      will use these rankings to allocate the prizes, one for each participant.
+    {% endblocktrans %}
+</p>
+
+<p class="justify" style="margin-bottom:0;">
+    {% blocktrans trimmed %}
+      The allocation process attempts to give each participant a prize that they ranked higher rather than a prize that they
+      ranked lower. However, this is not always possible, since the allocation process must take into account the rankings of all participants.
+    {% endblocktrans %}
+</p>
+</div>
+
+<p class="heading">
+    {% trans "Step 1: Prizes and Priorities" %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In Step 1, you first see the <strong>prizes</strong> you can get in this round and how
+      much money they are worth to <strong>you</strong> (paid as a bonus if you win that prize).
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In this round <strong>prizes</strong> are:
+    {% endblocktrans %}
+</p>
+<div>
+    <table class="dec-table">
+        <thead>
+        <tr>
+            <th>{% trans "Prize" %}</th>
+            {% for letter in letters %}
+            <td>{{ letter }}</td>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <th>
+                {% if C.ALIGNED %}
+                {% trans "Value to Any Participant" %}
+                {% else %}
+                {% trans "Value to You" %}
+                {% endif %}
+            </th>
+            {% for i in valuations %}
+            <td>${{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% if C.SHOW_PRIORITIES %}
+        <tr>
+            <th>{% trans "Your Priorities in Each Prize" %}</th>
+            {% for i in priorities %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        {% if C.SHOW_CAPACITIES %}
+        <tr>
+            <th>{% trans "Capacities" %}</th>
+            {% for i in capacities %}
+            <td>{{ i }}</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In the table above, under each prize {{ letters_str }}
+      you can see how much money it would add to <strong>your</strong> earnings.
+    {% endblocktrans %}
+</p>
+
+{% if C.ALIGNED %}
+<p class="justify">
+    {% blocktrans trimmed %}
+      Every participant values the prizes the same way.
+    {% endblocktrans %}
+</p>
+{% else %}
+<p class="justify">
+    {% blocktrans trimmed %}
+      How much each prize is worth to you is completely uncorrelated with how much
+      they are worth to others: For example, just because A is more valuable to you
+      than B does not mean it is to any other participant. In other words, you cannot
+      tell how much another participant values a prize just from knowing how much you
+      value the prize.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Finally, each participant can only see how much each prize is worth to <strong>themselves</strong>.
+    {% endblocktrans %}
+</p>
+{% endif %}
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You and the other participants <strong>cannot affect the monetary value of prizes</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Next, you will get to see what we call the <strong>prize priorities</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Our computer will <strong>randomly order</strong> the eight participants in your group, including you, from 1st to
+      {{ nr_prizes_ordinal }}. Everyone has an equally likely chance of being any number, and <strong>no
+      one can affect their prize priority</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="heading">
+    {% trans "Step 2: Submit Your Ranking" %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In Step 2, you are asked to <strong>rank prizes</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Please type your ranking of prizes in an order of your choice below. For example, if you want to rank
+      Prize A first, Prize B second, Prize C third and Prize D fourth, type "A" followed by "B" followed by "C"
+      followed by "D" and then click "Submit Ranking".
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You can rank all eight prizes, but you do not have to.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      You can only rank a prize once.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      The other participants will submit their own rankings. They <strong>do not know your ranking</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Your own ranking <strong>cannot affect the other participants' rankings</strong>.
+    {% endblocktrans %}
+</p>
+
+<p class="heading">
+    {% trans "Step 3: Allocation Process" %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      In Step 3, the allocation process allocates the prizes to participants.
+    {% endblocktrans %}
+</p>
+
+<div class="instr-section">
+<p class="justify">{% trans "How the allocation process works:" %}</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      <strong>These details are important to learn</strong>: You may be able to apply your knowledge of them to make better decisions
+      in deciding how many prizes you want to rank and in what order.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Some details may seem confusing at first. This is quite natural! But don't worry, we will show you
+      step-by-step examples. Things will become clearer along the way.
+    {% endblocktrans %}
+</p>
+</div>
+
+<p class="heading">
+    {% trans "Overview of the allocation process" %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      First, the process aims to match participants with prizes based on their rankings.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      The first part of the allocation process works in the following way:
+    {% endblocktrans %}
+</p>
+
+<div class="instr-section">
+<p class="justify">
+    {% blocktrans trimmed %}
+      <strong>Round 1: The participant with the first prize priority goes first</strong>. That participant will be assigned
+      the prize they submitted first in their ranking. If this participant ranked no prizes, they remain unmatched and receive no prize.
+    {% endblocktrans %}
+</p>
+<p class="justify">
+    {% blocktrans trimmed %}
+      If a prize was assigned to the participant with the first prize priority, that prize is excluded from the set of available prizes.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      <strong>Round 2: The participant with the second prize priority goes second</strong>. That participant will be assigned
+      the top prize according to the ranking they submitted among the set of available prizes. If the participant has not ranked
+      any of the available prizes, they remain unmatched and receive no prize.
+    {% endblocktrans %}
+</p>
+<p class="justify">
+    {% blocktrans trimmed %}
+      The set of available prizes is adjusted to exclude any prizes assigned to participants in Rounds 1 and 2.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      And so on.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      <strong>In general, in Round X: The participant with the Xth prize priority goes Xth</strong>. That participant will be assigned
+      the top prize according to the ranking they submitted among the set of available prizes. If the participant has not ranked
+      any of the available prizes, they remain unmatched and receive no prize.
+    {% endblocktrans %}
+</p>
+</div>
+
+<hr class="instr-divider">
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      At the end of this first part of the allocation process, some participants have received prizes and some participants
+      may be unmatched. Likewise, some prizes were allocated to participants, and some prizes may remain available prizes.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      Every unmatched participant, and only those, participate in the second allocation process, and all prizes that are
+      still available, and only those, participate in the second allocation process.
+    {% endblocktrans %}
+</p>
+<div class="instr-section">
+<p class="justify">
+    {% blocktrans trimmed %}
+      The second part of the allocation process works as follows. Every participant who is unmatched randomly receives one
+      of the prizes that are still available. In this second allocation process, your ranking of prizes is not taken into account.
+      At the end of the second allocation process, every previously unmatched participant is matched to a prize, whether they ranked it or not.
+    {% endblocktrans %}
+</p>
+
+<p class="justify">
+    {% blocktrans trimmed %}
+      At the end of Step 3, that is after the first and the second part of the allocation process, every participant is
+      therefore matched to a prize which determines their earnings.
+    {% endblocktrans %}
+</p>
+</div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{% trans "Back to Decision" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 

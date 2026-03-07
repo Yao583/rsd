@@ -1,6 +1,50 @@
 from os import environ
 
 SESSION_CONFIGS = [
+    dict(
+        name = 'rsd_a_e',
+        display_name = "AE",
+        app_sequence = ['rsd_lab_a_e'],
+        num_demo_participants = 8,
+        participation_fee = 5.00,
+    ),
+    dict(
+        name = 'rsd_na_ne',
+        display_name = "UNE",
+        app_sequence = ['rsd_lab_na_ne'],
+        num_demo_participants = 8,
+        participation_fee = 5.00,
+    ),
+    dict(
+        name = 'rsd_a_ne',
+        display_name = "ANE",
+        app_sequence = ['rsd_lab_a_ne'],
+        num_demo_participants = 8,
+        participation_fee = 5.00,
+    ),
+    dict(
+        name = 'rsd_na_e',
+        display_name = "UE",
+        app_sequence = ['rsd_lab_na_e'],
+        num_demo_participants = 8,
+        participation_fee = 5.00,
+    ),
+    dict(
+        name='rsd_live_a',
+        display_name="LIVE A",
+        app_sequence=['rsd_lab_live_a'],
+        num_demo_participants=8,
+        participation_fee=5.00,
+
+    ),
+    dict(
+        name='rsd_live_na',
+        display_name="LIVE NA",
+        app_sequence=['rsd_lab_live_na'],
+        num_demo_participants=8,
+        participation_fee=5.00,
+
+    ),
     # dict(
     # name='rsd_prolific',
     # display_name="Matching by RSD on Prolific",
@@ -8,20 +52,20 @@ SESSION_CONFIGS = [
     # num_demo_participants=1,
     # #use_browser_bots=True
     # ),
-    dict(
-        name = 'rsd_lab_t1',
-        display_name = "Treatment 1: AE - UNE",
-        app_sequence = ['rsd_lab_a_e', 'rsd_lab_na_ne'],
-        num_demo_participants = 8,
-        participation_fee = 5.00,
-    ),
-    dict(
-        name='rsd_lab_t2',
-        display_name = "Treatment 2: ANE - UE",
-        app_sequence=['rsd_lab_a_ne', 'rsd_lab_na_e'],
-        num_demo_participants=8,
-        participation_fee=5.00,
-    ),
+    # dict(
+    #     name = 'rsd_lab_t1',
+    #     display_name = "Treatment 1: AE - UNE",
+    #     app_sequence = ['rsd_lab_a_e', 'rsd_lab_na_ne'],
+    #     num_demo_participants = 8,
+    #     participation_fee = 5.00,
+    # ),
+    # dict(
+    #     name='rsd_lab_t2',
+    #     display_name = "Treatment 2: ANE - UE",
+    #     app_sequence=['rsd_lab_a_ne', 'rsd_lab_na_e'],
+    #     num_demo_participants=8,
+    #     participation_fee=5.00,
+    # ),
     # dict(
     #     name='rsd_lab_live',
     #     display_name="Treatment 3: LIVE",
